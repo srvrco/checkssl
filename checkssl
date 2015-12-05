@@ -2,20 +2,26 @@
 # ---------------------------------------------------------------------------
 # checkssl - checks ssl certs for a set of domains
 
-# This program is free software: you can redistribute it and/or modify # it under the terms of the GNU General Public License as published by # the Free Software Foundation, either version 3 of the License, or # (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify 
+# it under the terms of the GNU General Public License as published by 
+# the Free Software Foundation, either version 3 of the License, or 
+# (at your option) any later version.
 
-# This program is distributed in the hope that it will be useful, # but WITHOUT ANY WARRANTY; without even the implied warranty of # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the # GNU General Public License at <http://www.gnu.org/licenses/> for # more details.
+# This program is distributed in the hope that it will be useful, 
+# but WITHOUT ANY WARRANTY; without even the implied warranty of 
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+# GNU General Public License at <http://www.gnu.org/licenses/> for 
+# more details.
 
 # Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location]
 
 # Revision history:
 # 2015-12-05 Created (v0.1)
-# 2015-12-05 Added the ability to automatically search for domains from the letsencrypt live directory  (v0.2 - sleeps)
+# 2015-12-05 Added the ability to automatically search for domains from the Lets Encrypt live directory  (v0.2 - sleeps)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
 VERSION="0.2"
-
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal
 
 clean_up() { # Perform pre-exit housekeeping
@@ -52,7 +58,8 @@ usage() {
 }
 
 log() {
-     echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" >> ${PROGNAME}.log }
+     echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" >> ${PROGNAME}.log
+}
 
 debug() {
   if [[ "${_USE_DEBUG:-"0"}" -eq 1 ]]; then
@@ -123,7 +130,8 @@ DATA_OUT=$(mktemp)
 debug "created tmp files for input (${LIST_OF_DOMAINS}) and output (${DATA_OUT})"
 echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > $DATA_OUT
 
-# check and inport file if specified on command line if [ $FILEARG ]; then
+# check and inport file if specified on command line
+if [ $FILEARG ]; then
   if [ -f $FILE ]; then
     cat $FILE >> $LIST_OF_DOMAINS
   else
@@ -132,7 +140,8 @@ echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > $D
   fi
 fi
 
-# get a list of domains from server (if -s flag used) if [ $SERVERARG ]; then
+# get a list of domains from server (if -s flag used)
+if [ $SERVERARG ]; then
   if [ "$STYPE" == "cpanel" ]; then
     cat /etc/userdomains | cut -d":" -f 1 | grep "\." >> $LIST_OF_DOMAINS
   elif [ "$STYPE" == "ISPconfig" ]; then
@@ -183,7 +192,8 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
       PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
     fi
   fi
-  printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT done
+  printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT
+done
 
 echo ""
 cat $DATA_OUT | column -t -s"|"
