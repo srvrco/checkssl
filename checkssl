@@ -2,26 +2,26 @@
 # ---------------------------------------------------------------------------
 # checkssl - checks ssl certs for a set of domains
 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# This program is free software: you can redistribute it and/or modify 
+# it under the terms of the GNU General Public License as published by 
+# the Free Software Foundation, either version 3 of the License, or 
 # (at your option) any later version.
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License at <http://www.gnu.org/licenses/> for
+# This program is distributed in the hope that it will be useful, 
+# but WITHOUT ANY WARRANTY; without even the implied warranty of 
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+# GNU General Public License at <http://www.gnu.org/licenses/> for 
 # more details.
 
-# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype]
+# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location]
 
 # Revision history:
 # 2015-12-05 Created (v0.1)
+# 2015-12-05 Added the ability to automatically search for domains from the Lets Encrypt live directory  (v0.2 - sleeps)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="0.1"
-
+VERSION="0.2"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal
 
 clean_up() { # Perform pre-exit housekeeping
@@ -54,7 +54,7 @@ signal_exit() { # Handle trapped signals
 }
 
 usage() {
-  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype]"
+  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory]"
 }
 
 log() {
@@ -81,6 +81,9 @@ help_message() {
     Where 'filename' is a file containing a list of domain names
   -s, --server server_type
     Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
+  -l, --location directory
+    Where 'directory' is where your lets encrypt live directory is
+       (typically /etc/letsencrypt/live/)
 
 _EOF_
   return
@@ -103,6 +106,8 @@ while [[ -n $1 ]]; do
       FILEARG=true; shift; FILE="$1" ;;
     -s | --server)
       SERVERARG=true; shift; STYPE="$1" ;;
+    -l | --location)
+      LOCATIONARG=true; shift; LOC="$1";;
     -* | --*)
       usage
       error_exit "Unknown option $1" ;;
@@ -114,7 +119,7 @@ done
 
 # Main logic
 
-if [[ ! $FILEARG && ! $SERVERARG ]]; then
+if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG ]]; then
   help_message
   graceful_exit
 fi
@@ -145,6 +150,16 @@ if [ $SERVERARG ]; then
     echo "unknown server type currently"
     graceful_exit
   fi
+fi
+
+if [ $LOCATIONARG ]; then
+LELOC=$LOC/*
+    for f in $LELOC; do
+        if [[ -d $f ]]; then
+            dir=$(basename "$f")
+            echo $dir >> $LIST_OF_DOMAINS
+        fi
+    done
 fi
 
 cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
@@ -184,4 +199,3 @@ echo ""
 cat $DATA_OUT | column -t -s"|"
 
 graceful_exit
-
