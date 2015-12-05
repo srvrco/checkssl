@@ -1,0 +1,187 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# checkssl - checks ssl certs for a set of domains
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License at <http://www.gnu.org/licenses/> for
+# more details.
+
+# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype]
+
+# Revision history:
+# 2015-12-05 Created (v0.1)
+# ---------------------------------------------------------------------------
+
+PROGNAME=${0##*/}
+VERSION="0.1"
+
+RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal
+
+clean_up() { # Perform pre-exit housekeeping
+  rm -f LIST_OF_DOMAINS
+  rm -f DATA_OUT
+  return
+}
+
+error_exit() {
+  echo -e "${PROGNAME}: ${1:-"Unknown Error"}" >&2
+  clean_up
+  exit 1
+}
+
+graceful_exit() {
+  clean_up
+  exit
+}
+
+signal_exit() { # Handle trapped signals
+  case $1 in
+    INT)
+      error_exit "Program interrupted by user" ;;
+    TERM)
+      echo -e "\n$PROGNAME: Program terminated" >&2
+      graceful_exit ;;
+    *)
+      error_exit "$PROGNAME: Terminating on unknown signal" ;;
+  esac
+}
+
+usage() {
+  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype]"
+}
+
+log() {
+     echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" >> ${PROGNAME}.log
+}
+
+debug() {
+  if [[ "${_USE_DEBUG:-"0"}" -eq 1 ]]; then
+    echo "$@"
+  fi
+}
+
+help_message() {
+   cat <<- _EOF_
+   $PROGNAME ver. $VERSION
+   checks ssl certs for a set of domains
+
+   $(usage)
+
+   Options:
+  -h, --help  Display this help message and exit.
+  -d, --debug  outputs debug information
+  -f, --file  filename
+    Where 'filename' is a file containing a list of domain names
+  -s, --server server_type
+    Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
+
+_EOF_
+  return
+}
+
+# Trap signals
+trap "signal_exit TERM" TERM HUP
+trap "signal_exit INT"  INT
+
+
+
+# Parse command-line
+while [[ -n $1 ]]; do
+  case $1 in
+    -h | --help)
+      help_message; graceful_exit ;;
+    -d | --debug)
+     _USE_DEBUG=1 ;;
+    -f | --file)
+      FILEARG=true; shift; FILE="$1" ;;
+    -s | --server)
+      SERVERARG=true; shift; STYPE="$1" ;;
+    -* | --*)
+      usage
+      error_exit "Unknown option $1" ;;
+    *)
+      echo "Argument $1 to process..." ;;
+  esac
+  shift
+done
+
+# Main logic
+
+if [[ ! $FILEARG && ! $SERVERARG ]]; then
+  help_message
+  graceful_exit
+fi
+
+# create temporary file for the list of domains, and output
+LIST_OF_DOMAINS=$(mktemp)
+DATA_OUT=$(mktemp)
+debug "created tmp files for input (${LIST_OF_DOMAINS}) and output (${DATA_OUT})"
+echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > $DATA_OUT
+
+# check and inport file if specified on command line
+if [ $FILEARG ]; then
+  if [ -f $FILE ]; then
+    cat $FILE >> $LIST_OF_DOMAINS
+  else
+    echo "$FILE not found"
+    graceful_exit
+  fi
+fi
+
+# get a list of domains from server (if -s flag used)
+if [ $SERVERARG ]; then
+  if [ "$STYPE" == "cpanel" ]; then
+    cat /etc/userdomains | cut -d":" -f 1 | grep "\." >> $LIST_OF_DOMAINS
+  elif [ "$STYPE" == "ISPconfig" ]; then
+    apache2ctl -S | grep namevhost | awk '{print $4}' | sort | uniq >> $LIST_OF_DOMAINS
+  else
+    echo "unknown server type currently"
+    graceful_exit
+  fi
+fi
+
+cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
+  PROBLEMS=""
+  debug " --------------- domain ${DOMAIN}  ---------------------"
+  CERTINFO=$(echo | openssl s_client -servername ${DOMAIN} -connect ${DOMAIN}:443 2>/dev/null | openssl x509 2>/dev/null)
+  ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
+  [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
+  debug "$ISSUEDTO"
+  ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-Z' 0-9]*"| cut -c 5-)
+  [[ -z $ISSUER ]] && ISSUER="-"
+  debug "$ISSUER"
+  ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
+  [[ -z $ENDDATE ]] && ENDDATE="-"
+  debug "$ENDDATE"
+  if [ "${DOMAIN}" != "$ISSUEDTO" ]; then
+    if [[ -z $CERTINFO ]]; then
+      PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
+    else
+      ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-Z 0-9.]*" | cut -c 5-)
+      if [ "$(echo "$ALT_NAMES" | grep ^${DOMAIN})" == "${DOMAIN}" ]; then
+        ISSUEDTO=$(echo "${DOMAIN} (alt)")
+      else
+        PROBLEMS=$(echo "${PROBLEMS}- possible name mismatch")
+      fi
+    fi
+  fi
+  if [[ "$ENDDATE" != "-" ]]; then
+    if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
+      PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+    fi
+  fi
+  printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT
+done
+
+echo ""
+cat $DATA_OUT | column -t -s"|"
+
+graceful_exit
+
