@@ -4,8 +4,8 @@ to determine which ones have correct SSL certs, and which ones are in need of up
 This bash file is the first draft a a programto do that.   It can either be run against a list of file names, or on a single server with 
 the aim of getting all the domain names from the server.   The output looks like;
 
-Domain                     cert issued for            valid until               cert issued by                possible issues?
-domain1.com                domain1.com                Dec 22 09:19:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
-domain2.com                domain2.com (alt)          Dec 22 11:42:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
-domain3.net                domain3.net                Mar  4 10:10:00 2016 GMT  Let's Encrypt Authority X1
+Domain       cert issued for    valid until               cert issued by                possible issues?
+domain1.com  domain1.com        Dec 22 09:19:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
+domain2.com  domain2.com (alt)  Dec 22 11:42:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
+domain3.net  domain3.net        Mar  4 10:10:00 2016 GMT  Let's Encrypt Authority X1
 
