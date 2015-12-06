@@ -4,10 +4,39 @@ This bash file is the first draft a a program to do that.  It can either be run 
 
 The output looks like:
 
-Domain       cert issued for    valid until               cert issued by                possible issues?
-domain1.com  domain1.com        Dec 22 09:19:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
-domain2.com  domain2.com (alt)  Dec 22 11:42:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
-domain3.net  domain3.net        Mar  4 10:10:00 2016 GMT  Let's Encrypt Authority X1
+Domain       cert issued for  valid until               cert issued by                possible issues?
+domain1.com  domain1.com      Dec 22 09:19:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
+domain2.com  domain2.com      Dec 22 11:42:00 2016 GMT  Let's Encrypt Authority X1  - certificate near renewal date
+domain3.net  domain3.net      Mar  4 10:10:00 2016 GMT  Let's Encrypt Authority X1
+
+You can also get a list of domains that need to be renewed, to list the domains requiring renewal in the nest 20 days;
+
+checkssl -l /etc/letsencrypt/live/ -e 20 -r 
+domain7.com
+domain 12.com
+
+running checkssl with no arguments gives help;
+
+checkssl
+   checkssl ver. 0.4
+   checks ssl certs for a set of domains
+
+   Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew]
+
+   Options:
+  -h, --help  Display this help message and exit.
+  -d, --debug  outputs debug information
+  -f, --file  filename
+    Where 'filename' is a file containing a list of domain names
+  -s, --server server_type
+    Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
+  -l, --location directory
+    Where 'directory' is where your lets encrypt live directory is
+       (typically /etc/letsencrypt/live/)
+  -e, --expires days
+    Where 'days' is the number of days to alert if cert expires in that time period
+  -r, --renew  this just lists domain names that need to be renewed.   This list could be used by an auto renew script, or to email you.
+
 
 V0.1 initial commit by SRVRCO
 v0.2 modification by MrSleeps
