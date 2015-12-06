@@ -12,3 +12,4 @@ domain3.net  domain3.net        Mar  4 10:10:00 2016 GMT  Let's Encrypt Authorit
 V0.1 initial commit by SRVRCO
 v0.2 modification by MrSleeps
 v0.3 Corrected issue in grep affecting performance on some servers
+v0.4 correct typo and added -e and -r arguments

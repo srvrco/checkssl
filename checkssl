@@ -4,7 +4,7 @@
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
 # This program is distributed in the hope that it will be useful,
@@ -13,17 +13,20 @@
 # GNU General Public License at <http://www.gnu.org/licenses/> for
 # more details.
 
-# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location]
+# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location] [-e:--expires days] [-r:--renew]
 
 # Revision history:
 # 2015-12-05 Created (v0.1)
 # 2015-12-05 Added the ability to automatically search for domains from the Lets Encrypt live directory  (v0.2 - sleeps)
 # 2015-12-06 Corrected issue in grep affecting performance on some servers (v0.3 - srvrco)
+# 2015-12-06 corrected typo (srvrco)
+# 2015-12-06 Added --expires days argument to set the timescale you want to know about certs coming to end of life (srvrco)
+# 2015-12-06 Added --renew argument to list domains ready for renew v0.4 - srvrco)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="0.3"
-RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal
+VERSION="0.4"
+RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
 
 clean_up() { # Perform pre-exit housekeeping
   rm -f LIST_OF_DOMAINS
@@ -55,7 +58,7 @@ signal_exit() { # Handle trapped signals
 }
 
 usage() {
-  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory]"
+  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew]"
 }
 
 log() {
@@ -85,6 +88,9 @@ help_message() {
   -l, --location directory
     Where 'directory' is where your lets encrypt live directory is
        (typically /etc/letsencrypt/live/)
+  -e, --expires days
+    Where 'days' is the number of days to alert if cert expires in that time period
+  -r, --renew  this just lists domain names that need to be renewed.   This list could be used by an auto renew script, or to email you.
 
 _EOF_
   return
@@ -103,12 +109,16 @@ while [[ -n $1 ]]; do
       help_message; graceful_exit ;;
     -d | --debug)
      _USE_DEBUG=1 ;;
+    -e | --expires)
+      shift; RENEW_ALERT="$1" ;;
     -f | --file)
       FILEARG=true; shift; FILE="$1" ;;
+    -r | --renew)
+      RENEWARG=true ;;
     -s | --server)
       SERVERARG=true; shift; STYPE="$1" ;;
     -l | --location)
-      LOCATIONARG=true; shift; LOC="$1";;
+      LOCATIONARG=true; shift; LOC="$1" ;;
     -* | --*)
       usage
       error_exit "Unknown option $1" ;;
@@ -170,7 +180,7 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
   ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
   [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
   debug "$ISSUEDTO"
-  ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-zA_Z' 0-9]*"| cut -c 5-)
+  ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-zA-Z' 0-9]*"| cut -c 5-)
   [[ -z $ISSUER ]] && ISSUER="-"
   debug "$ISSUER"
   ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
@@ -196,7 +206,11 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
   printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT
 done
 
-echo ""
-cat $DATA_OUT | column -t -s"|"
+if [[ $RENEWARG ]]; then
+  grep "certificate near renewal date" $DATA_OUT | awk -F"|" '{print $1}'
+else
+  echo ""
+  cat $DATA_OUT | column -t -s"|"
+fi
 
 graceful_exit
