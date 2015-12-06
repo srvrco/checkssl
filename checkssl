@@ -2,15 +2,15 @@
 # ---------------------------------------------------------------------------
 # checkssl - checks ssl certs for a set of domains
 
-# This program is free software: you can redistribute it and/or modify 
-# it under the terms of the GNU General Public License as published by 
-# the Free Software Foundation, either version 3 of the License, or 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
-# GNU General Public License at <http://www.gnu.org/licenses/> for 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License at <http://www.gnu.org/licenses/> for
 # more details.
 
 # Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location]
@@ -18,10 +18,11 @@
 # Revision history:
 # 2015-12-05 Created (v0.1)
 # 2015-12-05 Added the ability to automatically search for domains from the Lets Encrypt live directory  (v0.2 - sleeps)
+# 2015-12-06 Corrected issue in grep affecting performance on some servers (v0.3 - srvrco)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="0.2"
+VERSION="0.3"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal
 
 clean_up() { # Perform pre-exit housekeeping
@@ -169,7 +170,7 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
   ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
   [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
   debug "$ISSUEDTO"
-  ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-Z' 0-9]*"| cut -c 5-)
+  ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-zA_Z' 0-9]*"| cut -c 5-)
   [[ -z $ISSUER ]] && ISSUER="-"
   debug "$ISSUER"
   ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
@@ -179,7 +180,7 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
     if [[ -z $CERTINFO ]]; then
       PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
     else
-      ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-Z 0-9.]*" | cut -c 5-)
+      ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.]*" | cut -c 5-)
       if [ "$(echo "$ALT_NAMES" | grep ^${DOMAIN})" == "${DOMAIN}" ]; then
         ISSUEDTO=$(echo "${DOMAIN} (alt)")
       else
