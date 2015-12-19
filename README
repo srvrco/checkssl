@@ -15,7 +15,14 @@ You can also get a list of domains that need to be renewed, to list the domains 
 
 checkssl -l /etc/letsencrypt/live/ -e 20 -r 
 domain7.com
-domain 12.com
+domain12.com
+
+You can also get it to run a specific command if domains need renewal, for example 
+
+check -i ISPconfig -e 20 -c ~/scripts/renewssl
+
+will run the renewssl command with the domain name passed as an argument.   If there are more than one domain that needs renewal it will call the command multiple times.   This can then easily be run as a cron to regularly check and update SSL certs.
+
 
 running checkssl with no arguments gives help;
 
@@ -38,9 +45,11 @@ checkssl
   -e, --expires days
     Where 'days' is the number of days to alert if cert expires in that time period
   -r, --renew  this just lists domain names that need to be renewed.   This list could be used by an auto renew script, or to email you.
-
+  -c, --command run-command
+    Where 'run-command' is a command to be run if certificates are due for renewal. 
 
 V0.1 initial commit by SRVRCO
 v0.2 modification by MrSleeps
-v0.3 Corrected issue in grep affecting performance on some servers
+v0.3 corrected issue in grep affecting performance on some servers
 v0.4 correct typo and added -e and -r arguments
+v0.5 added --command option 

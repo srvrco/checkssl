@@ -13,7 +13,7 @@
 # GNU General Public License at <http://www.gnu.org/licenses/> for
 # more details.
 
-# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location] [-e:--expires days] [-r:--renew]
+# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location] [-e:--expires days] [-r:--renew] [-c:--command command]
 
 # Revision history:
 # 2015-12-05 Created (v0.1)
@@ -22,6 +22,7 @@
 # 2015-12-06 corrected typo (srvrco)
 # 2015-12-06 Added --expires days argument to set the timescale you want to know about certs coming to end of life (srvrco)
 # 2015-12-06 Added --renew argument to list domains ready for renew v0.4 - srvrco)
+# 2015-12-19 Added --command argument to perform action to renew certs ( or send email or anything else needed)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
@@ -58,7 +59,7 @@ signal_exit() { # Handle trapped signals
 }
 
 usage() {
-  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew]"
+  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew] [-c:--command command]"
 }
 
 log() {
@@ -91,6 +92,8 @@ help_message() {
   -e, --expires days
     Where 'days' is the number of days to alert if cert expires in that time period
   -r, --renew  this just lists domain names that need to be renewed.   This list could be used by an auto renew script, or to email you.
+  -c, --command run_command
+    Where 'run_command' is a command which will be run ( with domain name passed) for any certs due for renewal
 
 _EOF_
   return
@@ -109,6 +112,8 @@ while [[ -n $1 ]]; do
       help_message; graceful_exit ;;
     -d | --debug)
      _USE_DEBUG=1 ;;
+    -c | --command)
+      COMMANDARG=true; shift; RUNCOMMAND="$1" ;;
     -e | --expires)
       shift; RENEW_ALERT="$1" ;;
     -f | --file)
@@ -208,6 +213,10 @@ done
 
 if [[ $RENEWARG ]]; then
   grep "certificate near renewal date" $DATA_OUT | awk -F"|" '{print $1}'
+elif [[ $COMMANDARG ]]; then
+  for DOMAIN in $(grep "certificate near renewal date" $DATA_OUT | awk -F"|" '{print $1}'); do
+    $RUNCOMMAND $DOMAIN
+  done
 else
   echo ""
   cat $DATA_OUT | column -t -s"|"
