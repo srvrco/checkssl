@@ -13,7 +13,7 @@
 # GNU General Public License at <http://www.gnu.org/licenses/> for
 # more details.
 
-# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location] [-e:--expires days] [-r:--renew] [-c:--command command]
+# Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location] [-e:--expires days] [-r:--renew] [-c:--command command] [domain]
 
 # Revision history:
 # 2015-12-05 Created (v0.1)
@@ -22,11 +22,12 @@
 # 2015-12-06 corrected typo (srvrco)
 # 2015-12-06 Added --expires days argument to set the timescale you want to know about certs coming to end of life (srvrco)
 # 2015-12-06 Added --renew argument to list domains ready for renew v0.4 - srvrco)
-# 2015-12-19 Added --command argument to perform action to renew certs ( or send email or anything else needed)
+# 2015-12-19 Added --command argument to perform action to renew certs ( or send email or anything else needed) (v0.5 srvrco)
+# 2016-01-07 Added option to just provide domain name on command line (v0.5 srvrco)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="0.4"
+VERSION="0.6"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
 
 clean_up() { # Perform pre-exit housekeeping
@@ -59,7 +60,7 @@ signal_exit() { # Handle trapped signals
 }
 
 usage() {
-  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew] [-c:--command command]"
+  echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew] [-c:--command command] [domain]"
 }
 
 log() {
@@ -95,6 +96,7 @@ help_message() {
   -c, --command run_command
     Where 'run_command' is a command which will be run ( with domain name passed) for any certs due for renewal
 
+    a domain name can also be specified on the command line
 _EOF_
   return
 }
@@ -128,14 +130,14 @@ while [[ -n $1 ]]; do
       usage
       error_exit "Unknown option $1" ;;
     *)
-      echo "Argument $1 to process..." ;;
+      DOMAINARG=true; DNAME=$(echo "$DNAME";echo "$1") ;;
   esac
   shift
 done
 
 # Main logic
 
-if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG ]]; then
+if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG && ! $DOMAINARG ]]; then
   help_message
   graceful_exit
 fi
@@ -145,6 +147,12 @@ LIST_OF_DOMAINS=$(mktemp)
 DATA_OUT=$(mktemp)
 debug "created tmp files for input (${LIST_OF_DOMAINS}) and output (${DATA_OUT})"
 echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > $DATA_OUT
+
+# use name name from command line if specified
+if [ $DOMAINARG ]; then
+    echo "$DNAME" >> $LIST_OF_DOMAINS
+fi
+
 
 # check and inport file if specified on command line
 if [ $FILEARG ]; then
@@ -179,36 +187,38 @@ LELOC=$LOC/*
 fi
 
 cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
-  PROBLEMS=""
-  debug " --------------- domain ${DOMAIN}  ---------------------"
-  CERTINFO=$(echo | openssl s_client -servername ${DOMAIN} -connect ${DOMAIN}:443 2>/dev/null | openssl x509 2>/dev/null)
-  ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
-  [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
-  debug "$ISSUEDTO"
-  ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-zA-Z' 0-9]*"| cut -c 5-)
-  [[ -z $ISSUER ]] && ISSUER="-"
-  debug "$ISSUER"
-  ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
-  [[ -z $ENDDATE ]] && ENDDATE="-"
-  debug "$ENDDATE"
-  if [ "${DOMAIN}" != "$ISSUEDTO" ]; then
-    if [[ -z $CERTINFO ]]; then
-      PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
-    else
-      ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.]*" | cut -c 5-)
-      if [ "$(echo "$ALT_NAMES" | grep ^${DOMAIN})" == "${DOMAIN}" ]; then
-        ISSUEDTO=$(echo "${DOMAIN} (alt)")
+  if [ ! -z $DOMAIN ]; then
+    PROBLEMS=""
+    debug " --------------- domain ${DOMAIN}  ---------------------"
+    CERTINFO=$(echo | openssl s_client -servername ${DOMAIN} -connect ${DOMAIN}:443 2>/dev/null | openssl x509 2>/dev/null)
+    ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
+    [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
+    debug "$ISSUEDTO"
+    ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-zA-Z' 0-9]*"| cut -c 5-)
+    [[ -z $ISSUER ]] && ISSUER="-"
+    debug "$ISSUER"
+    ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
+    [[ -z $ENDDATE ]] && ENDDATE="-"
+    debug "$ENDDATE"
+    if [ "${DOMAIN}" != "$ISSUEDTO" ]; then
+      if [[ -z $CERTINFO ]]; then
+        PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
       else
-        PROBLEMS=$(echo "${PROBLEMS}- possible name mismatch")
+        ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.]*" | cut -c 5-)
+        if [ "$(echo "$ALT_NAMES" | grep ^${DOMAIN})" == "${DOMAIN}" ]; then
+          ISSUEDTO=$(echo "${DOMAIN} (alt)")
+        else
+          PROBLEMS=$(echo "${PROBLEMS}- possible name mismatch")
+        fi
       fi
     fi
-  fi
-  if [[ "$ENDDATE" != "-" ]]; then
-    if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
-      PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+    if [[ "$ENDDATE" != "-" ]]; then
+      if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
+        PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+      fi
     fi
+    printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT
   fi
-  printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT
 done
 
 if [[ $RENEWARG ]]; then

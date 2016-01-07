@@ -27,10 +27,10 @@ will run the renewssl command with the domain name passed as an argument.   If t
 running checkssl with no arguments gives help;
 
 checkssl
-   checkssl ver. 0.4
+   checkssl ver. 0.6
    checks ssl certs for a set of domains
 
-   Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew]
+   Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew] [domain]
 
    Options:
   -h, --help  Display this help message and exit.
@@ -53,3 +53,4 @@ v0.2 modification by MrSleeps
 v0.3 corrected issue in grep affecting performance on some servers
 v0.4 correct typo and added -e and -r arguments
 v0.5 added --command option 
+v0.6 added ability to add domain name on command line 
