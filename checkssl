@@ -64,7 +64,7 @@ usage() {
 }
 
 log() {
-     echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" >> ${PROGNAME}.log
+     echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" >> "${PROGNAME}.log"
 }
 
 debug() {
@@ -146,18 +146,18 @@ fi
 LIST_OF_DOMAINS=$(mktemp)
 DATA_OUT=$(mktemp)
 debug "created tmp files for input (${LIST_OF_DOMAINS}) and output (${DATA_OUT})"
-echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > $DATA_OUT
+echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > "$DATA_OUT"
 
 # use name name from command line if specified
 if [ $DOMAINARG ]; then
-    echo "$DNAME" >> $LIST_OF_DOMAINS
+    echo "$DNAME" >> "$LIST_OF_DOMAINS"
 fi
 
 
 # check and inport file if specified on command line
 if [ $FILEARG ]; then
-  if [ -f $FILE ]; then
-    cat $FILE >> $LIST_OF_DOMAINS
+  if [ -f "$FILE" ]; then
+    cat "$FILE" >> "$LIST_OF_DOMAINS"
   else
     echo "$FILE not found"
     graceful_exit
@@ -167,30 +167,32 @@ fi
 # get a list of domains from server (if -s flag used)
 if [ $SERVERARG ]; then
   if [ "$STYPE" == "cpanel" ]; then
-    cat /etc/userdomains | cut -d":" -f 1 | grep "\." >> $LIST_OF_DOMAINS
+    cut -d":" -f 1 < /etc/userdomains | grep "\." >> "$LIST_OF_DOMAINS"
   elif [ "$STYPE" == "ISPconfig" ]; then
-    apache2ctl -S | grep namevhost | awk '{print $4}' | sort | uniq >> $LIST_OF_DOMAINS
+    apache2ctl -S | grep namevhost | awk '{print $4}' | sort | uniq >> "$LIST_OF_DOMAINS"
   else
     echo "unknown server type currently"
     graceful_exit
   fi
 fi
 
+# read directory names as domains in given directory ( format used by letsencrypt and getssl ) 
 if [ $LOCATIONARG ]; then
-LELOC=$LOC/*
-    for f in $LELOC; do
-        if [[ -d $f ]]; then
-            dir=$(basename "$f")
-            echo $dir >> $LIST_OF_DOMAINS
-        fi
-    done
+  for f in ${LOC}/*; do
+    if [ -d "$f" ]; then
+      debug "Checking $dir"
+      dir=$(basename "$f")
+      echo "$dir" >> "$LIST_OF_DOMAINS"
+    fi
+  done
 fi
 
-cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
-  if [ ! -z $DOMAIN ]; then
+# read domains from file 
+while IFS= read -r DOMAIN; do
+  if [ ! -z "$DOMAIN" ]; then
     PROBLEMS=""
     debug " --------------- domain ${DOMAIN}  ---------------------"
-    CERTINFO=$(echo | openssl s_client -servername ${DOMAIN} -connect ${DOMAIN}:443 2>/dev/null | openssl x509 2>/dev/null)
+    CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:443" 2>/dev/null | openssl x509 2>/dev/null)
     ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
     [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
     debug "$ISSUEDTO"
@@ -205,10 +207,10 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
         PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
       else
         ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.]*" | cut -c 5-)
-        if [ "$(echo "$ALT_NAMES" | grep ^${DOMAIN})" == "${DOMAIN}" ]; then
-          ISSUEDTO=$(echo "${DOMAIN} (alt)")
+        if [[ "$(echo "$ALT_NAMES" | grep "^${DOMAIN}")" == "${DOMAIN}" ]]=; then
+          ISSUEDTO="${DOMAIN} (alt)"
         else
-          PROBLEMS=$(echo "${PROBLEMS}- possible name mismatch")
+          PROBLEMS="${PROBLEMS}- possible name mismatch"
         fi
       fi
     fi
@@ -217,19 +219,20 @@ cat $LIST_OF_DOMAINS | while read -d $'\n\b' DOMAIN; do
         PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
       fi
     fi
-    printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> $DATA_OUT
+    printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
   fi
-done
+done < "$LIST_OF_DOMAINS"
 
 if [[ $RENEWARG ]]; then
-  grep "certificate near renewal date" $DATA_OUT | awk -F"|" '{print $1}'
+  grep "certificate near renewal date" "$DATA_OUT" | awk -F"|" '{print $1}'
 elif [[ $COMMANDARG ]]; then
-  for DOMAIN in $(grep "certificate near renewal date" $DATA_OUT | awk -F"|" '{print $1}'); do
-    $RUNCOMMAND $DOMAIN
-  done
+  # read list of domains needing renewal and pass to relevent RUNCOMMAND
+  while IFS= read -r DOMAIN; do
+    $RUNCOMMAND "$DOMAIN"
+  done < <(grep "certificate near renewal date" < "$DATA_OUT" | awk -F"|" '{print $1}')
 else
   echo ""
-  cat $DATA_OUT | column -t -s"|"
+  column -t -s"|" < "$DATA_OUT"
 fi
 
 graceful_exit
