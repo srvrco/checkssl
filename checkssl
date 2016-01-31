@@ -173,6 +173,7 @@ echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > "$
 # use name name from command line if specified
 if [ $DOMAINARG ]; then
     echo "$DNAME" >> "$LIST_OF_DOMAINS"
+    debug "added $DNAME to list of domains"
 fi
 
 
@@ -180,6 +181,7 @@ fi
 if [ $FILEARG ]; then
   if [ -f "$FILE" ]; then
     cat "$FILE" >> "$LIST_OF_DOMAINS"
+    debug "added $file $FILE to list of domains"
   else
     echo "$FILE not found"
     graceful_exit
@@ -188,6 +190,7 @@ fi
 
 # get a list of domains from server (if -s flag used)
 if [ $SERVERARG ]; then
+  debug "getting list of domains from server"
   if [ "$STYPE" == "cpanel" ]; then
     cut -d":" -f 1 < /etc/userdomains | grep "\." >> "$LIST_OF_DOMAINS"
   elif [ "$STYPE" == "ISPconfig" ]; then
@@ -200,6 +203,7 @@ fi
 
 # read directory names as domains in given directory ( format used by letsencrypt and getssl ) 
 if [ $LOCATIONARG ]; then
+  debug "getting list of domains from directory"
   for f in ${LOC}/*; do
     if [ -d "$f" ]; then
       debug "Checking $dir"
@@ -208,6 +212,8 @@ if [ $LOCATIONARG ]; then
     fi
   done
 fi
+
+debug "completed creating list of domains"
 
 # read domains from file 
 while IFS= read -r DOMAIN; do
@@ -229,7 +235,8 @@ while IFS= read -r DOMAIN; do
         PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
       else
         ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.]*" | cut -c 5-)
-        if [[ "$(echo "$ALT_NAMES" | grep "^${DOMAIN}")" == "${DOMAIN}" ]]=; then
+        debug "ALT Names  $ALT_NAMES"
+        if [[ "$(echo "$ALT_NAMES" | grep "^${DOMAIN}")" == "${DOMAIN}" ]]; then
           ISSUEDTO="${DOMAIN} (alt)"
         else
           PROBLEMS="${PROBLEMS}- possible name mismatch"
