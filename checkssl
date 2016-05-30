@@ -26,11 +26,17 @@
 # 2016-01-07 Added option to just provide domain name on command line (v0.6 srvrco)
 # 2016-01-30 Updated after using shellcheck to maintain a better coding standard (0.7)
 # 2016-01-31 Added check at start to ensure all required applications are installed (0.8)
+# 2016-05-30 Added auto-upgrade option on the command line (1.00)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="0.8"
+VERSION="1.00"
+
+ORIGCMD="$0 $*"
+UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/getssl/master/checkssl"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
+_QUIET=0
+_UPGRADE=0
 
 clean_up() { # Perform pre-exit housekeeping
   rm -f LIST_OF_DOMAINS
@@ -63,7 +69,7 @@ signal_exit() { # Handle trapped signals
 
 usage() {
   echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] 
-                [-e|--expires days] [-r:--renew] [-c:--command command] [domain]"
+                [-e|--expires days] [-r|--renew] [-u|--update] [-c|--command command] [domain]"
 }
 
 log() {
@@ -105,6 +111,7 @@ help_message() {
                   Where 'days' is the number of days to alert if cert expires in that time period
 	  -r, --renew  this just lists domain names that need to be renewed.   
                   This list could be used by an auto renew script, or to email you.
+	  -u, --upgrade Upgrade checkssl if a more recent version is available
 	  -c, --command run_command
                   Where 'run_command' is a command which will be run (with domain name passed) 
                   for any certs due for renewal
@@ -113,6 +120,46 @@ help_message() {
 	_EOF_
   return
 }
+
+debug() {
+  if [[ "${_USE_DEBUG:-"0"}" -eq 1 ]]; then
+    echo "$@"
+  fi
+}
+
+info() {
+  if [ ${_QUIET} -eq 0 ]; then
+    echo "$@"
+  fi
+}
+
+check_upgrade () {
+  latestcode=$(curl --silent "$UPDATE_LOCATION")
+  latestversion=$(echo "$latestcode" | grep VERSION= | head -1| awk -F'"' '{print $2}')
+  latestvdec=$(echo "$latestversion"| tr -d '.')
+  localvdec=$(echo "$VERSION"| tr -d '.' )
+  debug "current code is version ${VERSION}"
+  debug "Most recent version is  ${latestversion}"
+  # use a default of 0 for cases where the latest code has not been obtained. 
+  if [ "${latestvdec:-0}" -gt "$localvdec" ]; then
+    if [ ${_UPGRADE} -eq 1 ]; then
+      temp_upgrade="$(mktemp)"
+      echo "$latestcode" > "$temp_upgrade"
+      install "$0" "${0}.v${VERSION}"
+      install "$temp_upgrade" "$0"
+      rm -f "$temp_upgrade"
+      info "Updated getssl from v${VERSION} to v${latestversion}"
+      eval "$ORIGCMD"
+      graceful_exit
+    else
+      info ""
+      info "A more recent version (v${latestversion}) of checkssl is available, please update"
+      info "the easiest way is to use the -u or --upgrade flag"
+      info ""
+    fi
+  fi
+}
+
 
 # Trap signals
 trap "signal_exit TERM" TERM HUP
@@ -139,6 +186,8 @@ while [[ -n $1 ]]; do
       SERVERARG=true; shift; STYPE="$1" ;;
     -l | --location)
       LOCATIONARG=true; shift; LOC="$1" ;;
+    -u | --upgrade)
+     _UPGRADE=1 ;;
     -* | --*)
       usage
       error_exit "Unknown option $1" ;;
@@ -163,6 +212,7 @@ if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG && ! $DOMAINARG ]]; then
   graceful_exit
 fi
 
+check_upgrade
 
 # create temporary file for the list of domains, and output
 LIST_OF_DOMAINS=$(mktemp)
@@ -181,7 +231,7 @@ fi
 if [ $FILEARG ]; then
   if [ -f "$FILE" ]; then
     cat "$FILE" >> "$LIST_OF_DOMAINS"
-    debug "added $file $FILE to list of domains"
+    debug "added file $FILE to list of domains"
   else
     echo "$FILE not found"
     graceful_exit
