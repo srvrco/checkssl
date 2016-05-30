@@ -27,7 +27,7 @@
 # 2016-01-30 Updated after using shellcheck to maintain a better coding standard (0.7)
 # 2016-01-31 Added check at start to ensure all required applications are installed (0.8)
 # 2016-05-30 Added auto-upgrade option on the command line (1.00)
-# 2016-05-30 Correcting typo
+# 2016-05-30 Correcting typo (1.01)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}

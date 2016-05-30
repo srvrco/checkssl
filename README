@@ -26,32 +26,29 @@ will run the renewssl command with the domain name passed as an argument.   If t
 
 running checkssl with no arguments gives help;
 
-checkssl
-   checkssl ver. 0.7
-   checks ssl certs for a set of domains
+checkssl ver. 1.00
+Checks ssl certs for a set of domains
 
-   Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] [-e|--expires days] [-r:--renew] [domain]
+Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] 
+                [-e|--expires days] [-r|--renew] [-u|--update] [-u|--upgrade] [-c|--command command] [domain]
 
-   Options:
-  -h, --help  Display this help message and exit.
-  -d, --debug  outputs debug information
+Options:
+  -h, --help      Display this help message and exit.
+  -d, --debug     Outputs debug information
   -f, --file  filename
-    Where 'filename' is a file containing a list of domain names
+                  Where 'filename' is a file containing a list of domain names
   -s, --server server_type
-    Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
+                  Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
   -l, --location directory
-    Where 'directory' is where your lets encrypt live directory is
-       (typically /etc/letsencrypt/live/)
+                  Where 'directory' is where your lets encrypt live directory is
+                  (typically /etc/letsencrypt/live/)
   -e, --expires days
-    Where 'days' is the number of days to alert if cert expires in that time period
-  -r, --renew  this just lists domain names that need to be renewed.   This list could be used by an auto renew script, or to email you.
-  -c, --command run-command
-    Where 'run-command' is a command to be run if certificates are due for renewal. 
+                  Where 'days' is the number of days to alert if cert expires in that time period
+  -r, --renew  this just lists domain names that need to be renewed.   
+                  This list could be used by an auto renew script, or to email you.
+  -u, --upgrade Upgrade checkssl if a more recent version is available
+  -c, --command run_command
+                  Where 'run_command' is a command which will be run (with domain name passed) 
+                  for any certs due for renewal
 
-V0.1 initial commit by SRVRCO
-v0.2 modification by MrSleeps
-v0.3 corrected issue in grep affecting performance on some servers
-v0.4 correct typo and added -e and -r arguments
-v0.5 added --command option 
-v0.6 added ability to add domain name on command line 
-v0.7 Updated after using shellcheck to maintain a better coding standard
+                  A domain name can also be specified on the command line
