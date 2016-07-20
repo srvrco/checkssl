@@ -28,10 +28,11 @@
 # 2016-01-31 Added check at start to ensure all required applications are installed (0.8)
 # 2016-05-30 Added auto-upgrade option on the command line (1.00)
 # 2016-05-30 Correcting typo (1.01)
+# 2016-07-20 adding -p option to list possible issues (1.02)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.01"
+VERSION="1.02"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -102,24 +103,24 @@ help_message() {
 	  -h, --help      Display this help message and exit.
 	  -d, --debug     Outputs debug information
 	  -f, --file  filename
-                  Where 'filename' is a file containing a list of domain names
+	                  Where 'filename' is a file containing a list of domain names
 	  -s, --server server_type
-                  Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
+	                  Where 'server_type' is the server type (cpanel, ISPconfig, apache2 ...)
 	  -l, --location directory
-                  Where 'directory' is where your lets encrypt live directory is
-                  (typically /etc/letsencrypt/live/)
+	                  Where 'directory' is where your lets encrypt live directory is
+	                  (typically /etc/letsencrypt/live/)
 	  -e, --expires days
-                  Where 'days' is the number of days to alert if cert expires in that time period
-	  -r, --renew  this just lists domain names that need to be renewed.   
-                  This list could be used by an auto renew script, or to email you.
-	  -p, --problemsthis just lists the domains that have possible issues.   
-                  This list could be used to email you only if there is something to take care of.
-	  -u, --upgrade Upgrade checkssl if a more recent version is available
+	                  Where 'days' is the number of days to alert if cert expires in that time period
+	  -r, --renew     This just lists domain names that need to be renewed.
+	                  This list could be used by an auto renew script, or to email you.
+	  -p, --problems  This just lists the domains that have possible issues.
+	                  This list could be used to email you only if there is something to take care of.
+	  -u, --upgrade   Upgrade checkssl if a more recent version is available
 	  -c, --command run_command
-                  Where 'run_command' is a command which will be run (with domain name passed) 
-                  for any certs due for renewal
+	                  Where 'run_command' is a command which will be run (with domain name passed)
+	                  for any certs due for renewal
 
-                  A domain name can also be specified on the command line
+	                  A domain name can also be specified on the command line
 	_EOF_
   return
 }
@@ -303,14 +304,17 @@ while IFS= read -r DOMAIN; do
         PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
       fi
     fi
-    if [[ ! $PROBLEMARG ]] || [[ ! -z "$PROBLEMS"]]; then
-      printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
-    fi
+    printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
   fi
 done < "$LIST_OF_DOMAINS"
 
 if [[ $RENEWARG ]]; then
   grep "certificate near renewal date" "$DATA_OUT" | awk -F"|" '{print $1}'
+elif [[ $PROBLEMARG ]]; then
+  num_problems=$(grep -c "no certificate found\|possible name mismatch\|certificate near renewal date" "$DATA_OUT")
+  if [[ $num_problems -gt 0 ]]; then
+    column -t -s"|" < <(grep "possible issues\|no certificate found\|possible name mismatch\|certificate near renewal date" "$DATA_OUT")
+  fi
 elif [[ $COMMANDARG ]]; then
   # read list of domains needing renewal and pass to relevent RUNCOMMAND
   while IFS= read -r DOMAIN; do
