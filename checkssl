@@ -112,6 +112,8 @@ help_message() {
                   Where 'days' is the number of days to alert if cert expires in that time period
 	  -r, --renew  this just lists domain names that need to be renewed.   
                   This list could be used by an auto renew script, or to email you.
+	  -p, --problemsthis just lists the domains that have possible issues.   
+                  This list could be used to email you only if there is something to take care of.
 	  -u, --upgrade Upgrade checkssl if a more recent version is available
 	  -c, --command run_command
                   Where 'run_command' is a command which will be run (with domain name passed) 
@@ -183,6 +185,8 @@ while [[ -n $1 ]]; do
       FILEARG=true; shift; FILE="$1" ;;
     -r | --renew)
       RENEWARG=true ;;
+    -p | --problems)
+      PROBLEMARG=true ;;
     -s | --server)
       SERVERARG=true; shift; STYPE="$1" ;;
     -l | --location)
@@ -299,7 +303,9 @@ while IFS= read -r DOMAIN; do
         PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
       fi
     fi
-    printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
+    if [[ ! $PROBLEMARG ]] || [[ ! -z "$PROBLEMS"]]; then
+      printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
+    fi
   fi
 done < "$LIST_OF_DOMAINS"
 
