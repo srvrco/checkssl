@@ -274,6 +274,7 @@ debug "completed creating list of domains"
 # read domains from file 
 while IFS= read -r DOMAIN; do
   if [ ! -z "$DOMAIN" ]; then
+    DOMAIN="$(echo -e "${DOMAIN}" | tr -d '[[:space:]]')"
     PROBLEMS=""
     debug " --------------- domain ${DOMAIN}  ---------------------"
     CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:443" 2>/dev/null | openssl x509 2>/dev/null)
