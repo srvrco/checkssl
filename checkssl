@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # checkssl - checks ssl certs for a set of domains
 
@@ -30,10 +30,11 @@
 # 2016-05-30 Correcting typo (1.01)
 # 2016-07-20 adding -p option to list possible issues (1.02)
 # 2016-08-02 remove spaces from domain names (1.03)
+# 3016-08-25 updated for use on MAC / FreeBSD. issue #6 (1.04)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.03"
+VERSION="1.04"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -47,10 +48,34 @@ clean_up() { # Perform pre-exit housekeeping
   return
 }
 
+date_diff() { # use different grep version for different os types
+  if [[ "$os" == "freebsd" ]]; then
+    date -v  -${RENEW_ALERT}
+  else
+    date -d "${RENEW_ALERT} days" +%s
+  fi
+}
+
 error_exit() {
   echo -e "${PROGNAME}: ${1:-"Unknown Error"}" >&2
   clean_up
   exit 1
+}
+
+get_os() { # function to get the current Operating System
+  uname_res=$(uname -s)
+  if [[ ${uname_res} == "Linux" ]]; then
+    os="linux"
+  elif [[ ${uname_res} == "FreeBSD" ]]; then
+    os="bsd"
+  elif [[ ${uname_res} == "Darwin" ]]; then
+    os="mac"
+  elif [[ ${uname_res:0:6} == "CYGWIN" ]]; then
+    os="cygwin"
+  else
+    os="unknown"
+  fi
+  debug "detected os type = $os"
 }
 
 graceful_exit() {
@@ -206,6 +231,9 @@ done
 
 # Main logic
 
+# Get the current OS, so the correct functions can ve used for that OS. (sets the variable os)
+get_os
+
 #check if required applications are included
 
 _requires openssl
@@ -302,8 +330,18 @@ while IFS= read -r DOMAIN; do
       fi
     fi
     if [[ "$ENDDATE" != "-" ]]; then
-      if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
-        PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+      if [[ "$os" == "bsd" ]]; then
+        if [[ $(date -v -${RENEW_ALERT}d +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+          PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+        fi
+      elif [[ "$os" == "mac" ]]; then
+        if [[ $(date -v -${RENEW_ALERT}d +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+          PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+        fi
+      else
+        if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
+          PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
+        fi
       fi
     fi
     printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
