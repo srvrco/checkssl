@@ -32,10 +32,11 @@
 # 2016-08-02 remove spaces from domain names (1.03)
 # 2016-08-25 updated for use on MAC / FreeBSD. issue #6 (1.04)
 # 2016-08-25 typo correction (1.05)
+# 2016-08-25 removing set-x left in during some testing ... (1.06)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.05"
+VERSION="1.06"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -331,7 +332,6 @@ while IFS= read -r DOMAIN; do
       fi
     fi
     if [[ "$ENDDATE" != "-" ]]; then
-    set -x
       if [[ "$os" == "bsd" ]]; then
         if [[ $(date -v +${RENEW_ALERT}d +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
@@ -345,7 +345,6 @@ while IFS= read -r DOMAIN; do
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       fi
-    set +x
     fi
     printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
   fi
