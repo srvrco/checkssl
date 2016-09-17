@@ -33,10 +33,11 @@
 # 2016-08-25 updated for use on MAC / FreeBSD. issue #6 (1.04)
 # 2016-08-25 typo correction (1.05)
 # 2016-08-25 removing set-x left in during some testing ... (1.06)
+# 2016-09-17 moved upgrade option (-u) so it works if only option. (1.07)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.06"
+VERSION="1.07"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -244,12 +245,12 @@ _requires grep
 _requires awk
 _requires column
 
+check_upgrade
+
 if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG && ! $DOMAINARG ]]; then
   help_message
   graceful_exit
 fi
-
-check_upgrade
 
 # create temporary file for the list of domains, and output
 LIST_OF_DOMAINS=$(mktemp)
