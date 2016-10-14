@@ -34,6 +34,7 @@
 # 2016-08-25 typo correction (1.05)
 # 2016-08-25 removing set-x left in during some testing ... (1.06)
 # 2016-09-17 moved upgrade option (-u) so it works if only option. (1.07)
+# 2016-10-14 added '-' to allowed characters for the alt name check
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
@@ -323,7 +324,7 @@ while IFS= read -r DOMAIN; do
       if [[ -z $CERTINFO ]]; then
         PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
       else
-        ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.]*" | cut -c 5-)
+        ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.-]*" | cut -c 5-)
         debug "ALT Names  $ALT_NAMES"
         if [[ "$(echo "$ALT_NAMES" | grep "^${DOMAIN}")" == "${DOMAIN}" ]]; then
           ISSUEDTO="${DOMAIN} (alt)"
