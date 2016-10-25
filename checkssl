@@ -45,6 +45,7 @@ UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checks
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
 _QUIET=0
 _UPGRADE=0
+_UPGRADE_CHECK=1
 
 clean_up() { # Perform pre-exit housekeeping
   rm -f LIST_OF_DOMAINS
@@ -101,7 +102,7 @@ signal_exit() { # Handle trapped signals
 
 usage() {
   echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] 
-                [-e|--expires days] [-r|--renew] [-u|--update] [-c|--command command] [domain]"
+                [-e|--expires days] [-r|--renew] [-u|--update] [-U|--nocheck] [-c|--command command] [domain]"
 }
 
 log() {
@@ -146,6 +147,7 @@ help_message() {
 	  -p, --problems  This just lists the domains that have possible issues.
 	                  This list could be used to email you only if there is something to take care of.
 	  -u, --upgrade   Upgrade checkssl if a more recent version is available
+	  -U, --nocheck   Do not check if a more recent version is available
 	  -c, --command run_command
 	                  Where 'run_command' is a command which will be run (with domain name passed)
 	                  for any certs due for renewal
@@ -224,6 +226,8 @@ while [[ -n $1 ]]; do
       LOCATIONARG=true; shift; LOC="$1" ;;
     -u | --upgrade)
      _UPGRADE=1 ;;
+    -U | --nocheck)
+     _UPGRADE_CHECK=0 ;;
     -* | --*)
       usage
       error_exit "Unknown option $1" ;;
@@ -246,7 +250,10 @@ _requires grep
 _requires awk
 _requires column
 
-check_upgrade
+# Check if upgrades are available (unless they have specified -U to ignore Upgrade checks)
+if [[ $_UPGRADE_CHECK -eq 1 ]]; then
+  check_upgrade
+fi
 
 if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG && ! $DOMAINARG ]]; then
   help_message
