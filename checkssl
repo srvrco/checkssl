@@ -35,16 +35,18 @@
 # 2016-08-25 removing set-x left in during some testing ... (1.06)
 # 2016-09-17 moved upgrade option (-u) so it works if only option. (1.07)
 # 2016-10-14 added '-' to allowed characters for the alt name check
+# 2016-10-25 allow muttiple different services to be checked (1.08)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.07"
+VERSION="1.08"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
 _QUIET=0
 _UPGRADE=0
+_UPGRADE_CHECK=1
 
 clean_up() { # Perform pre-exit housekeeping
   rm -f LIST_OF_DOMAINS
@@ -101,7 +103,7 @@ signal_exit() { # Handle trapped signals
 
 usage() {
   echo -e "Usage: $PROGNAME [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] 
-                [-e|--expires days] [-r|--renew] [-u|--update] [-c|--command command] [domain]"
+                [-e|--expires days] [-r|--renew] [-u|--update] [-U|--nocheck] [-c|--command command] [domain]"
 }
 
 log() {
@@ -146,6 +148,7 @@ help_message() {
 	  -p, --problems  This just lists the domains that have possible issues.
 	                  This list could be used to email you only if there is something to take care of.
 	  -u, --upgrade   Upgrade checkssl if a more recent version is available
+	  -U, --nocheck   Do not check if a more recent version is available
 	  -c, --command run_command
 	                  Where 'run_command' is a command which will be run (with domain name passed)
 	                  for any certs due for renewal
@@ -224,6 +227,8 @@ while [[ -n $1 ]]; do
       LOCATIONARG=true; shift; LOC="$1" ;;
     -u | --upgrade)
      _UPGRADE=1 ;;
+    -U | --nocheck)
+     _UPGRADE_CHECK=0 ;;
     -* | --*)
       usage
       error_exit "Unknown option $1" ;;
@@ -246,7 +251,10 @@ _requires grep
 _requires awk
 _requires column
 
-check_upgrade
+# Check if upgrades are available (unless they have specified -U to ignore Upgrade checks)
+if [[ $_UPGRADE_CHECK -eq 1 ]]; then
+  check_upgrade
+fi
 
 if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG && ! $DOMAINARG ]]; then
   help_message
@@ -257,7 +265,7 @@ fi
 LIST_OF_DOMAINS=$(mktemp)
 DATA_OUT=$(mktemp)
 debug "created tmp files for input (${LIST_OF_DOMAINS}) and output (${DATA_OUT})"
-echo "Domain|cert issued for|valid until|cert issued by|  possible issues?" > "$DATA_OUT"
+echo "Domain|port|cert issued for|valid until|cert issued by|  possible issues?" > "$DATA_OUT"
 
 # use name name from command line if specified
 if [ $DOMAINARG ]; then
@@ -305,12 +313,36 @@ fi
 debug "completed creating list of domains"
 
 # read domains from file 
-while IFS= read -r DOMAIN; do
-  if [ ! -z "$DOMAIN" ]; then
-    DOMAIN=${DOMAIN// /}
+while IFS= read -r LINE; do
+  if [ ! -z "$LINE" ]; then
+    PS=443
+    PORT=443
+    if [[ "$LINE" == *":"* ]]; then
+      DOMAIN=$(echo $LINE | awk -F":" '{print $1}')
+      PS=$(echo $LINE | awk -F":" '{print $2}')
+    else
+      DOMAIN=$(echo $LINE | awk '{print $1}')
+    fi
+
+    case "${PS}" in
+      https | 443)   PORT=443  ;;
+      ftp   | 21)    PORT=21;   REMOTE_EXTRA="-starttls ftp" ;;
+      ftpi  | 990 )  PORT=990  ;;
+      imap  | 143 )  PORT=143;  REMOTE_EXTRA="-starttls imap" ;;
+      imaps | 993 )  PORT=993  ;;
+      pop3  | 110 )  PORT=110 ; REMOTE_EXTRA="-starttls pop3" ;;
+      pop3s | 995 )  PORT=995  ;;
+      smtp  | 25 )   PORT=25;   REMOTE_EXTRA="-starttls smtp" ;;
+      smtps | 587 )  PORT=587;  REMOTE_EXTRA="-starttls smtp" ;;
+      xmpp  | 5222 ) PORT=5222; REMOTE_EXTRA="-starttls xmpp" ;;
+      xmpps | 5269 ) PORT=5269 ;;
+      ldaps | 636 )  PORT=636  ;;
+    esac
+
+#    DOMAIN=${DOMAIN// /}
     PROBLEMS=""
-    debug " --------------- domain ${DOMAIN}  ---------------------"
-    CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:443" 2>/dev/null | openssl x509 2>/dev/null)
+    debug " --------------- domain ${DOMAIN}:${PORT}---------------------"
+    CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:${PORT}" 2>/dev/null | openssl x509 2>/dev/null)
     ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
     [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
     debug "$ISSUEDTO"
@@ -348,7 +380,7 @@ while IFS= read -r DOMAIN; do
         fi
       fi
     fi
-    printf "%s|%s|%s|%s|%s\n" "$DOMAIN" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
+    printf "%s|%s|%s|%s|%s|%s\n" "$DOMAIN" "$PS" "$ISSUEDTO" "$ENDDATE" "$ISSUER" "$PROBLEMS">> "$DATA_OUT"
   fi
 done < "$LIST_OF_DOMAINS"
 

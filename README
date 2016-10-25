@@ -26,11 +26,11 @@ will run the renewssl command with the domain name passed as an argument.   If t
 
 running checkssl with no arguments gives help;
 
-checkssl ver. 1.00
+checkssl ver. 1.07
 Checks ssl certs for a set of domains
 
 Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] 
-                [-e|--expires days] [-r|--renew] [-u|--update] [-u|--upgrade] [-c|--command command] [domain]
+                [-e|--expires days] [-r|--renew] [-u|--update] [-U|--nocheck] [-c|--command command] [domain]
 
 Options:
   -h, --help      Display this help message and exit.
@@ -44,11 +44,21 @@ Options:
                   (typically /etc/letsencrypt/live/)
   -e, --expires days
                   Where 'days' is the number of days to alert if cert expires in that time period
-  -r, --renew  this just lists domain names that need to be renewed.   
+  -r, --renew     This just lists domain names that need to be renewed.
                   This list could be used by an auto renew script, or to email you.
-  -u, --upgrade Upgrade checkssl if a more recent version is available
+  -p, --problems  This just lists the domains that have possible issues.
+                  This list could be used to email you only if there is something to take care of.
+  -u, --upgrade   Upgrade checkssl if a more recent version is available
+  -U, --nocheck   Do not check if a more recent version is available
   -c, --command run_command
-                  Where 'run_command' is a command which will be run (with domain name passed) 
+                  Where 'run_command' is a command which will be run (with domain name passed)
                   for any certs due for renewal
 
                   A domain name can also be specified on the command line
+
+
+If a file is provided, with a list of domains then each domain can include a port / service for testing i.e.
+
+example.com
+example.com:pop3s
+example.com:587
