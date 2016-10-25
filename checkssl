@@ -37,10 +37,11 @@
 # 2016-10-14 added '-' to allowed characters for the alt name check
 # 2016-10-25 allow muttiple different services to be checked (1.08)
 # 2016-10-25 bug fix of missing REMOTE_EXTRA (1.09)
+# 2016-10-25 set defaults to REMOTE_EXTRA to none (1.10)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.09"
+VERSION="1.10"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -320,25 +321,25 @@ while IFS= read -r LINE; do
     PS=443
     PORT=443
     if [[ "$LINE" == *":"* ]]; then
-      DOMAIN=$(echo $LINE | awk -F":" '{print $1}')
-      PS=$(echo $LINE | awk -F":" '{print $2}')
+      DOMAIN=$(echo "$LINE" | awk -F":" '{print $1}')
+      PS=$(echo "$LINE" | awk -F":" '{print $2}')
     else
-      DOMAIN=$(echo $LINE | awk '{print $1}')
+      DOMAIN=$(echo "$LINE" | awk '{print $1}')
     fi
 
     case "${PS}" in
-      https | 443)   PORT=443  ;;
+      https | 443)   PORT=443;  REMOTE_EXTRA="" ;;
       ftp   | 21)    PORT=21;   REMOTE_EXTRA="-starttls ftp" ;;
-      ftpi  | 990 )  PORT=990  ;;
+      ftpi  | 990 )  PORT=990;  REMOTE_EXTRA="" ;;
       imap  | 143 )  PORT=143;  REMOTE_EXTRA="-starttls imap" ;;
-      imaps | 993 )  PORT=993  ;;
+      imaps | 993 )  PORT=993;  REMOTE_EXTRA="" ;;
       pop3  | 110 )  PORT=110 ; REMOTE_EXTRA="-starttls pop3" ;;
-      pop3s | 995 )  PORT=995  ;;
+      pop3s | 995 )  PORT=995;  REMOTE_EXTRA=""  ;;
       smtp  | 25 )   PORT=25;   REMOTE_EXTRA="-starttls smtp" ;;
       smtps | 587 )  PORT=587;  REMOTE_EXTRA="-starttls smtp" ;;
       xmpp  | 5222 ) PORT=5222; REMOTE_EXTRA="-starttls xmpp" ;;
-      xmpps | 5269 ) PORT=5269 ;;
-      ldaps | 636 )  PORT=636  ;;
+      xmpps | 5269 ) PORT=5269; REMOTE_EXTRA="" ;;
+      ldaps | 636 )  PORT=636;  REMOTE_EXTRA=""  ;;
     esac
 
 #    DOMAIN=${DOMAIN// /}
