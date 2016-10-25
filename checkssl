@@ -277,7 +277,7 @@ fi
 # check and inport file if specified on command line
 if [ $FILEARG ]; then
   if [ -f "$FILE" ]; then
-    cat "$FILE" >> "$LIST_OF_DOMAINS"
+    grep -v '^#' "$FILE" >> "$LIST_OF_DOMAINS"
     debug "added file $FILE to list of domains"
   else
     echo "$FILE not found"
