@@ -36,14 +36,16 @@
 # 2016-09-17 moved upgrade option (-u) so it works if only option. (1.07)
 # 2016-10-14 added '-' to allowed characters for the alt name check
 # 2016-10-25 allow muttiple different services to be checked (1.08)
+# 2016-10-25 bug fix of missing REMOTE_EXTRA (1.09)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.08"
+VERSION="1.09"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
+REMOTE_EXTRA=""
 _QUIET=0
 _UPGRADE=0
 _UPGRADE_CHECK=1
@@ -342,7 +344,7 @@ while IFS= read -r LINE; do
 #    DOMAIN=${DOMAIN// /}
     PROBLEMS=""
     debug " --------------- domain ${DOMAIN}:${PORT}---------------------"
-    CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:${PORT}" 2>/dev/null | openssl x509 2>/dev/null)
+    CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:${PORT}" ${REMOTE_EXTRA} 2>/dev/null | openssl x509 2>/dev/null)
     ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
     [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
     debug "$ISSUEDTO"
