@@ -38,10 +38,11 @@
 # 2016-10-25 allow muttiple different services to be checked (1.08)
 # 2016-10-25 bug fix of missing REMOTE_EXTRA (1.09)
 # 2016-10-25 set defaults to REMOTE_EXTRA to none (1.10)
+# 2016-10-28 enable defining other ports in a file #11 (1.11)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.10"
+VERSION="1.11"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -340,6 +341,7 @@ while IFS= read -r LINE; do
       xmpp  | 5222 ) PORT=5222; REMOTE_EXTRA="-starttls xmpp" ;;
       xmpps | 5269 ) PORT=5269; REMOTE_EXTRA="" ;;
       ldaps | 636 )  PORT=636;  REMOTE_EXTRA=""  ;;
+      * )            PORT=$PS;  REMOTE_EXTRA=""  ;;
     esac
 
 #    DOMAIN=${DOMAIN// /}
