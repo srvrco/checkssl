@@ -39,15 +39,15 @@
 # 2016-10-25 bug fix of missing REMOTE_EXTRA (1.09)
 # 2016-10-25 set defaults to REMOTE_EXTRA to none (1.10)
 # 2016-10-28 enable defining other ports in a file #11 (1.11)
+# 2016-10-28 add ability to specify REMOTE_EXTRA in file list (1.12)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.11"
+VERSION="1.12"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
-REMOTE_EXTRA=""
 _QUIET=0
 _UPGRADE=0
 _UPGRADE_CHECK=1
@@ -244,7 +244,7 @@ done
 
 # Main logic
 
-# Get the current OS, so the correct functions can ve used for that OS. (sets the variable os)
+# Get the current OS, so the correct functions can be used for that OS. (sets the variable os)
 get_os
 
 #check if required applications are included
@@ -319,6 +319,7 @@ debug "completed creating list of domains"
 # read domains from file 
 while IFS= read -r LINE; do
   if [ ! -z "$LINE" ]; then
+    debug "line $LINE"
     PS=443
     PORT=443
     if [[ "$LINE" == *":"* ]]; then
@@ -341,12 +342,11 @@ while IFS= read -r LINE; do
       xmpp  | 5222 ) PORT=5222; REMOTE_EXTRA="-starttls xmpp" ;;
       xmpps | 5269 ) PORT=5269; REMOTE_EXTRA="" ;;
       ldaps | 636 )  PORT=636;  REMOTE_EXTRA=""  ;;
-      * )            PORT=$PS;  REMOTE_EXTRA=""  ;;
+      * )            PORT=$PS;  REMOTE_EXTRA="$(echo "$LINE" | awk '{for (i=2; i<=NF; i++) print $i}')"  ;;
     esac
 
-#    DOMAIN=${DOMAIN// /}
     PROBLEMS=""
-    debug " --------------- domain ${DOMAIN}:${PORT}---------------------"
+    debug " --------------- domain ${DOMAIN}:${PORT} ${REMOTE_EXTRA}---------------------"
     CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:${PORT}" ${REMOTE_EXTRA} 2>/dev/null | openssl x509 2>/dev/null)
     ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null|cut -d= -f 3-)
     [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
