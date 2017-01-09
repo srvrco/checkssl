@@ -41,10 +41,11 @@
 # 2016-10-28 enable defining other ports in a file #11 (1.11)
 # 2016-10-28 add ability to specify REMOTE_EXTRA in file list (1.12)
 # 2017-01-01 updated checks from shellcheck (1.13)
+# 2017-01-09 correct typo in cleanup (to remove all tmp files) (1.14)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.13"
+VERSION="1.14"
 
 ORIGCMD="$0 $*"
 UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -54,8 +55,8 @@ _UPGRADE=0
 _UPGRADE_CHECK=1
 
 clean_up() { # Perform pre-exit housekeeping
-  rm -f LIST_OF_DOMAINS
-  rm -f DATA_OUT
+  rm -f "$LIST_OF_DOMAINS"
+  rm -f "$DATA_OUT"
   return
 }
 
