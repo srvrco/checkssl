@@ -11,7 +11,7 @@ addons:
     - shellcheck
 
 script:
- - bash -c 'shopt -s globstar; shellcheck getssl'
+ - bash -c 'shopt -s globstar; shellcheck checkssl'
 
 matrix:
   fast_finish: true
