@@ -26,7 +26,7 @@ will run the renewssl command with the domain name passed as an argument.   If t
 
 running checkssl with no arguments gives help;
 
-checkssl ver. 1.07
+checkssl ver. 1.15
 Checks ssl certs for a set of domains
 
 Usage: checkssl [-h|--help] [-d|--debug] [-f|--file filename] [-s|--server stype] [-l|--location directory] 
@@ -55,6 +55,7 @@ Options:
                   for any certs due for renewal
 
                   A domain name can also be specified on the command line
+
 
 
 If a file is provided, with a list of domains then each domain can include a port / service for testing i.e.
