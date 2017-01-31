@@ -43,13 +43,14 @@
 # 2017-01-01 updated checks from shellcheck (1.13)
 # 2017-01-09 correct typo in cleanup (to remove all tmp files) (1.14)
 # 2017-01-12 updated to ignore -r flag if -c is used. (1.15)
+# 2017-01-31 updated variable for auto upgrade location (1.16)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.15"
+VERSION="1.16"
 
 ORIGCMD="$0 $*"
-UPDATE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
+CODE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
 _QUIET=0
 _UPGRADE=0
@@ -178,7 +179,7 @@ info() {
 }
 
 check_upgrade () {
-  latestcode=$(curl --silent "$UPDATE_LOCATION")
+  latestcode=$(curl --silent "$CODE_LOCATION")
   latestversion=$(echo "$latestcode" | grep VERSION= | head -1| awk -F'"' '{print $2}')
   latestvdec=$(echo "$latestversion"| tr -d '.')
   localvdec=$(echo "$VERSION"| tr -d '.' )
