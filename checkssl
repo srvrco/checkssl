@@ -367,7 +367,7 @@ while IFS= read -r LINE; do
     ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
     [[ -z $ENDDATE ]] && ENDDATE="-"
     debug "$ENDDATE"
-    if [ "${DOMAIN}" != "$ISSUEDTO" ]; then
+    if [[ $DOMAIN != $ISSUEDTO ]]; then
       if [[ -z $CERTINFO ]]; then
         PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
       else
