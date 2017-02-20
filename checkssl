@@ -263,6 +263,7 @@ _requires column
 # Check if upgrades are available (unless they have specified -U to ignore Upgrade checks)
 if [[ $_UPGRADE_CHECK -eq 1 ]]; then
   check_upgrade
+  graceful_exit
 fi
 
 if [[ ! $FILEARG && ! $SERVERARG && ! $LOCATIONARG && ! $DOMAINARG ]]; then
