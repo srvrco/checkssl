@@ -388,15 +388,15 @@ while IFS= read -r LINE; do
     fi
     if [[ "$ENDDATE" != "-" ]]; then
       if [[ "$os" == "bsd" ]]; then
-        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(LC_TIME=C date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       elif [[ "$os" == "mac" ]]; then
-        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(LC_TIME=C date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       else
-        if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
+        if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(LC_TIME=C date -d "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       fi
