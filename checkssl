@@ -54,6 +54,12 @@ VERSION="1.18"
 ORIGCMD="$0 $*"
 CODE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
 RENEW_ALERT="30" # set to number of days to be alerted for certificate renewal ( default, can be changed with -expires argument)
+
+BIN_DATE="/bin/date"
+if [[ ! -x "$BIN_DATE" ]]; then
+  BIN_DATE=$(command -v date || echo date)
+fi
+
 _QUIET=0
 _UPGRADE=0
 _UPGRADE_CHECK=1
@@ -66,9 +72,9 @@ clean_up() { # Perform pre-exit housekeeping
 
 date_diff() { # use different grep version for different os types
   if [[ "$os" == "freebsd" ]]; then
-    date -v  -${RENEW_ALERT}
+    "$BIN_DATE" -v  -${RENEW_ALERT}
   else
-    date -d "${RENEW_ALERT} days" +%s
+    "$BIN_DATE" -d "${RENEW_ALERT} days" +%s
   fi
 }
 
@@ -117,7 +123,7 @@ usage() {
 }
 
 log() {
-     echo "[$(date +%Y-%m-%d\ %H:%M:%S)] $*" >> "${PROGNAME}.log"
+     echo "[$("$BIN_DATE" +%Y-%m-%d\ %H:%M:%S)] $*" >> "${PROGNAME}.log"
 }
 
 debug() {
@@ -388,15 +394,15 @@ while IFS= read -r LINE; do
     fi
     if [[ "$ENDDATE" != "-" ]]; then
       if [[ "$os" == "bsd" ]]; then
-        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+        if [[ $("$BIN_DATE" -v +"${RENEW_ALERT}d" +%s) -gt $("$BIN_DATE" -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       elif [[ "$os" == "mac" ]]; then
-        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+        if [[ $("$BIN_DATE" -v +"${RENEW_ALERT}d" +%s) -gt $("$BIN_DATE" -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       else
-        if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
+        if [[ $("$BIN_DATE" -d "${RENEW_ALERT} days" +%s) -gt $("$BIN_DATE" -d "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       fi
