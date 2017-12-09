@@ -46,10 +46,11 @@
 # 2017-01-31 updated variable for auto upgrade location (1.16)
 # 2017-02-06 merge branches parsing CN and wildcard certs (1.17)
 # 2017-02-22 make no output when -u is only arg and no upgrade available (1.18)
+# 2017-12-09 Set LC_TIME to be able to parse english month (1.19)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.18"
+VERSION="1.19"
 
 ORIGCMD="$0 $*"
 CODE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -388,15 +389,15 @@ while IFS= read -r LINE; do
     fi
     if [[ "$ENDDATE" != "-" ]]; then
       if [[ "$os" == "bsd" ]]; then
-        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(LC_TIME=C date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       elif [[ "$os" == "mac" ]]; then
-        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
+        if [[ $(date -v +"${RENEW_ALERT}d" +%s) -gt $(LC_TIME=C date -j -f "%b %d %H:%M:%S %Y %Z" "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       else
-        if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(date -d "$ENDDATE" +%s) ]]; then
+        if [[ $(date -d "${RENEW_ALERT} days" +%s) -gt $(LC_TIME=C date -d "$ENDDATE" +%s) ]]; then
           PROBLEMS=$(echo "${PROBLEMS}- certificate near renewal date")
         fi
       fi
