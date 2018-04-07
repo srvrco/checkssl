@@ -371,10 +371,10 @@ while IFS= read -r LINE; do
     debug " --------------- domain ${DOMAIN}:${PORT} ${REMOTE_EXTRA}---------------------"
     # shellcheck disable=SC2086
     CERTINFO=$(echo | openssl s_client -servername "${DOMAIN}" -connect "${DOMAIN}:${PORT}" ${REMOTE_EXTRA} 2>/dev/null | openssl x509 2>/dev/null)
-    ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject 2>/dev/null| grep -Eo "/CN=[^/]+" | cut -c 5-)
+    ISSUEDTO=$(echo "$CERTINFO" | openssl x509 -noout -subject -nameopt multiline 2>/dev/null| grep commonName | grep -Eo '=.*' | cut -c 3-)
     [[ -z $ISSUEDTO ]] && ISSUEDTO="-"
     debug "$ISSUEDTO"
-    ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer 2>/dev/null| grep -Eo "/CN=[a-zA-Z' 0-9]*"| cut -c 5-)
+    ISSUER=$(echo "$CERTINFO" | openssl x509 -noout -issuer -nameopt multiline 2>/dev/null| grep commonName | grep -Eo '=.*' | cut -c 3-)
     [[ -z $ISSUER ]] && ISSUER="-"
     debug "$ISSUER"
     ENDDATE=$(echo "$CERTINFO" | openssl x509 -noout -enddate 2>/dev/null| cut -d= -f 2-)
