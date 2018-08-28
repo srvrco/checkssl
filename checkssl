@@ -385,11 +385,17 @@ while IFS= read -r LINE; do
       if [[ -z $CERTINFO ]]; then
         PROBLEMS=$(echo "${PROBLEMS}- no certificate found")
       else
-        ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[a-zA-Z 0-9.-]*" | cut -c 5-)
+        ALT_NAMES=$(echo "$CERTINFO" | openssl x509 -noout -text 2>/dev/null| grep "Subject Alternative Name" -A2 |grep -Eo "DNS:[-a-zA-Z 0-9.*]*" | cut -c 5-)
         debug "ALT Names  $ALT_NAMES"
-        if [[ "$(echo "$ALT_NAMES" | grep "^${DOMAIN}")" == "${DOMAIN}" ]]; then
-          ISSUEDTO="${DOMAIN} (alt)"
-        else
+        ISSUEDTO=
+        for ALT_NAME in $ALT_NAMES; do
+          debug "check '$DOMAIN' == '$ALT_NAME'"
+          if [[ $DOMAIN == $ALT_NAME ]]; then
+            ISSUEDTO="${ALT_NAME} (alt)"
+          fi
+        done
+        if [ -z "$ISSUEDTO" ]; then
+          ISSUEDTO="-"
           PROBLEMS="${PROBLEMS}- possible name mismatch"
         fi
       fi
