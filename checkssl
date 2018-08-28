@@ -48,10 +48,11 @@
 # 2017-02-22 make no output when -u is only arg and no upgrade available (1.18)
 # 2017-12-09 Set LC_TIME to be able to parse english month (1.19)
 # 2017-12-09 Use absolute path to `date` binary (1.20)
+# 2018-08-28 merging in PR's for the new wildcard certs from LetsEncrypt (1.21)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.20"
+VERSION="1.21"
 
 ORIGCMD="$0 $*"
 CODE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
