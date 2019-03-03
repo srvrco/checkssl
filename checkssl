@@ -317,7 +317,7 @@ if [ $SERVERARG ]; then
   debug "getting list of domains from server"
   if [ "$STYPE" == "cpanel" ]; then
     cut -d":" -f 1 < /etc/userdomains | grep "\." >> "$LIST_OF_DOMAINS"
-  elif [ "$STYPE" == "ISPconfig" ]; then
+  elif [ "$STYPE" == "ISPconfig" ] || [ "$STYPE" == "apache2" ]; then
     apache2ctl -S | grep namevhost | awk '{print $4}' | sort | uniq >> "$LIST_OF_DOMAINS"
   else
     echo "unknown server type currently"
