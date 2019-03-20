@@ -49,10 +49,11 @@
 # 2017-12-09 Set LC_TIME to be able to parse english month (1.19)
 # 2017-12-09 Use absolute path to `date` binary (1.20)
 # 2018-08-28 merging in PR's for the new wildcard certs from LetsEncrypt (1.21)
+# 2019-03-20 merging in jpluimers fix for apache2 server type (1.22)
 # ---------------------------------------------------------------------------
 
 PROGNAME=${0##*/}
-VERSION="1.21"
+VERSION="1.22"
 
 ORIGCMD="$0 $*"
 CODE_LOCATION="https://raw.githubusercontent.com/srvrco/checkssl/master/checkssl"
@@ -317,7 +318,7 @@ if [ $SERVERARG ]; then
   debug "getting list of domains from server"
   if [ "$STYPE" == "cpanel" ]; then
     cut -d":" -f 1 < /etc/userdomains | grep "\." >> "$LIST_OF_DOMAINS"
-  elif [ "$STYPE" == "ISPconfig" ]; then
+  elif [ "$STYPE" == "ISPconfig" ] || [ "$STYPE" == "apache2" ]; then
     apache2ctl -S | grep namevhost | awk '{print $4}' | sort | uniq >> "$LIST_OF_DOMAINS"
   else
     echo "unknown server type currently"
